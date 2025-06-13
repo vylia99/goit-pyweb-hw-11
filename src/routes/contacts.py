@@ -1,10 +1,8 @@
-# src/routes/contacts.py
-
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from sqlalchemy.orm import Session
-from datetime import date
+
 
 from src.database.db import get_db
 from src.schemas import ContactCreate, ContactUpdate, ContactResponse
@@ -29,6 +27,23 @@ async def read_contact(contact_id: int, db: Session = Depends(get_db)):
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
     return contact
+
+
+@router.get("/search", response_model=List[ContactResponse])
+async def search_contacts(
+        name: str | None = None,
+        surname: str | None = None,
+        email: str | None = None,
+        db: Session = Depends(get_db)
+):
+    contacts = await repository_contacts.search_contacts(name, surname, email, db)
+    return contacts
+
+
+@router.get("/birthday", response_model=List[ContactResponse])
+async def upcoming_birthdays(db: Session = Depends(get_db)):
+    contacts = await repository_contacts.get_upcoming_birthdays(db)
+    return contacts
 
 
 @router.put("/{contact_id}", response_model=ContactResponse)
