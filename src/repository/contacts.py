@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from src.database.models import Contact
 from src.schemas import ContactCreate, ContactUpdate
+from datetime import date, timedelta
 
 
 async def get_contacts(skip: int, limit: int, db: Session) -> List[Contact]:
@@ -39,6 +40,35 @@ async def update_contact(contact_id: int, body: ContactUpdate, db: Session) -> C
         db.commit()
         db.refresh(contact)
     return contact
+
+
+async def get_upcoming_birthdays(db: Session) -> List[Contact]:
+    today = date.today()
+    next_week = today + timedelta(days=7)
+
+    contacts = db.query(Contact).all()
+    upcoming = []
+
+    for contact in contacts:
+        if contact.birthday:
+            birthday_this_year = contact.birthday.replace(year=today.year)
+            if today <= birthday_this_year <= next_week:
+                upcoming.append(contact)
+
+    return upcoming
+
+
+async def search_contacts(name: str | None, surname: str | None, email: str | None, db: Session) -> List[Contact]:
+    query = db.query(Contact)
+
+    if name:
+        query = query.filter(Contact.name.ilike(f"%{name}%"))
+    if surname:
+        query = query.filter(Contact.surname.ilike(f"%{surname}%"))
+    if email:
+        query = query.filter(Contact.email.ilike(f"%{email}%"))
+
+    return query.all()
 
 
 async def delete_contact(contact_id: int, db: Session) -> Contact | None:
